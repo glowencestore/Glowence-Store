@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Glowence — Store</title>
+    <style>
+      :root {
+        --accent: #ff8fb1;
+        --muted: rgba(255, 255, 255, 0.85);
+        --bg-dark: #05030a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        /* margin: 0; */
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto,
+          "Helvetica Neue", Arial;
+      }
+
+      /* page background (solid gradient based on provided image) */
+      .page-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background: radial-gradient(
+          circle at 40% 40%,
+          #0b6a7f 0%,
+          #043547 100%
+        );
+      }
+      /* subtle dark overlay so white text reads */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(5, 3, 10, 0.25),
+          rgba(5, 3, 10, 0.45)
+        );
+        z-index: -1;
+      }
+
+      /* floating glow (the element that enlarges & disappears on scroll) */
+      .glow {
+        position: fixed;
+        left: 50%;
+        top: 20%;
+        transform: translateX(-50%);
+        width: 420px;
+        height: 420px;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: -1;
+        transition: transform 600ms cubic-bezier(0.22, 0.9, 0.2, 1),
+          opacity 600ms ease;
+        background: radial-gradient(
+          closest-side,
+          rgba(255, 140, 180, 0.28),
+          rgba(255, 140, 180, 0.06) 60%,
+          transparent 70%
+        );
+        mix-blend-mode: screen;
+        filter: blur(36px) saturate(110%);
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 32px;
+        position: relative;
+        margin-top: -40px;
+      }
+      .brand {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .brand img {
+        width: 120px;
+        height: auto;
+        object-fit: contain;
+      }
+
+      nav {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        flex: 1;
+        justify-content: center;
+      }
+      nav a {
+        color: var(--muted);
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+      nav a.active {
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.02)
+        );
+        backdrop-filter: blur(6px);
+      }
+
+      /* search box centered */
+      .search-box {
+        display: flex;
+        align-items: center;
+        position: relative;
+        width: 260px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .search-box input {
+        width: 100%;
+        padding: 8px 32px 8px 10px;
+        border: 2px solid #fff;
+        border-radius: 8px;
+        background: transparent;
+        color: #fff;
+        outline: none;
+        text-align: left;
+      }
+      .search-box input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .search-box .icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #fff;
+        font-size: 16px;
+        pointer-events: none;
+      }
+
+      main {
+        padding: 30px 32px 120px;
+      }
+      .hero {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+      }
+      .hero .left {
+        flex: 1;
+      }
+      .hero h2 {
+        color: var(--muted);
+        margin: 0 0 8px;
+        /* font-size: 34px; */
+      }
+      .hero p {
+        color: rgba(255, 255, 255, 0.7);
+        margin: 0 0 12px;
+      }
+
+      /* product grid */
+      .products {
+        margin-top: 28px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 18px;
+      }
+      .card {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.01)
+        );
+        padding: 14px;
+        border-radius: 14px;
+        backdrop-filter: blur(6px);
+        min-height: 240px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+        justify-content: flex-start;
+        box-shadow: none;
+        border: 0;
+      }
+      .card img {
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+      .card h3 {
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+      }
+      .card p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 14px;
+      }
+      .price {
+        margin-top: auto;
+        font-weight: 700;
+        color: white;
+      }
+      .buy {
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        background: transparent;
+        color: var(--muted);
+        border: 2px solid #fff;
+        transition: all 0.3s ease;
+      }
+      .buy:hover {
+        background: #fff;
+        color: var(--bg-dark);
+        border-color: rgb(6 51 66);
+      }
+
+      /* reveal animations */
+      .hidden {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      .reveal {
+        opacity: 1;
+        transform: none;
+        transition: all 600ms cubic-bezier(0.22, 0.9, 0.2, 1);
+      }
+
+      /* section containers for each category */
+      .section {
+        display: none;
+      }
+      .section.active {
+        display: block;
+      }
+
+      /* responsive */
+      @media (max-width: 720px) {
+        header {
+          display: flex;
+          flex-direction: column; /* stack logo and nav vertically */
+          align-items: center; /* center logo */
+          padding: 16px 20px;
+        }
+
+        .brand {
+          justify-content: center; /* center logo */
+          margin-bottom: 0; /* remove gap */
+        }
+
+        nav {
+          width: 100%;
+          display: flex;
+          justify-content: center; /* center nav links under logo */
+          gap: 10px;
+          margin-top: 0; /* remove gap above nav */
+        }
+
+        .search-box {
+          width: 100%;
+          max-width: 280px;
+          margin: 10px auto 0; /* search box stays below header */
+          justify-content: center;
+        }
+
+        .products {
+          justify-content: center; /* keep products centered */
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        }
+
+        .hero {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .glow {
+          width: 300px;
+          height: 300px;
+          top: 14%;
+        }
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div id="pageBg" class="page-bg"></div>
+    <div class="overlay"></div>
+    <div class="glow" id="glow"></div>
+
+    <header>
+      <div class="brand">
+        <img id="logo" src="assets/brand_logo.png" alt="Glowence logo" />
+      </div>
+      <nav id="mainNav">
+        <a href="#" data-tab="fashion" class="active">Fashion</a>
+        <a href="#" data-tab="skincare">Skincare</a>
+        <a href="#" data-tab="home">Essentials</a>
+      </nav>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search..." />
+      </div>
+    </header>
+
+    <main>
+      <section class="section active" id="fashion">
+        <div class="hero">
+          <div class="left">
+            <h2>Fashion — Active Collection</h2>
+            <p>Breathable activewear, sweat-wicking fabrics.</p>
+          </div>
+        </div>
+
+        <div class="products" id="fashionProducts">
+          <article class="card hidden">
+            <img src="assets/fashion/1.png" alt="Latest Men Boots" />
+            <h3>Latest Men Boots</h3>
+            <p>Lightweight performance tee with stretch.</p>
+            <div class="price">₹670</div>
+            <button class="buy" data-product="Latest Men Boots">
+              Buy on WhatsApp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/2.png" alt="Blazstar Check Star" />
+            <h3>Blazstar Check Star</h3>
+            <p>Quick-dry microfibre shorts.</p>
+            <div class="price">₹450</div>
+            <button class="buy" data-product="Blazstar Check Star">
+              Buy on WhatsApp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/3.png" alt="Cotton Blend Formal Pants" />
+            <h3>Cotton Blend Formal Pants</h3>
+            <p>Supportive fit with breathable mesh.</p>
+            <div class="price">₹500</div>
+            <button class="buy" data-product="Cotton Blend Formal Pants">
+              Buy on WhatsApp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img
+              src="assets/fashion/4.png"
+              alt="New Heavy Bollywood Saree
+"
+            />
+            <h3>New Heavy Bollywood Saree</h3>
+            <p></p>
+            <div class="price">₹518</div>
+            <button class="buy" data-product="New Heavy Bollywood Saree">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img
+              src="assets/fashion/5.png"
+              alt="Classic Denim Jacket
+"
+            />
+            <h3>Classic Denim Jacket</h3>
+            <p>Classic Denim Jacket</p>
+            <div class="price">₹587</div>
+            <button class="buy" data-product="Classic Denim Jacket">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/6.png" alt="Slim Fit Jeans" />
+            <h3>Slim Fit Jeans</h3>
+            <p></p>
+            <div class="price">₹706</div>
+            <button class="buy" data-product="Slim Fit Jeans">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/7.png" alt="Oversized Hoodie" />
+            <h3>Oversized Hoodie</h3>
+            <p></p>
+            <div class="price">₹500</div>
+            <button class="buy" data-product="Oversized Hoodie">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/8.png" alt="Crop Top" />
+            <h3>Crop Top</h3>
+            <p></p>
+            <div class="price">₹373</div>
+            <button class="buy" data-product="Crop Top">Buy on Whatsapp</button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/9.png" alt="Maxi Dress" />
+            <h3>Maxi Dress</h3>
+            <p></p>
+            <div class="price">₹750</div>
+            <button class="buy" data-product="Maxi Dress">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/10.png" alt="Bodycon Dress" />
+            <h3>Bodycon Dress</h3>
+            <p></p>
+            <div class="price">₹500</div>
+            <button class="buy" data-product="Bodycon Dress">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/11.png" alt="Leather Jacket" />
+            <h3>Leather Jacket</h3>
+            <p></p>
+            <div class="price">₹550</div>
+            <button class="buy" data-product="Leather Jacket">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/12.png" alt="Bomber Jacket" />
+            <h3>Bomber Jacket</h3>
+            <p></p>
+            <div class="price">₹ 550</div>
+            <button class="buy" data-product="Bomber Jacket">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/13.png" alt="Trench Coat" />
+            <h3>Trench Coat</h3>
+            <p></p>
+            <div class="price">₹677</div>
+            <button class="buy" data-product="Trench Coat">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/14.png" alt="Blazer Suit Set" />
+            <h3>Blazer Suit Set</h3>
+            <p></p>
+            <div class="price">₹700</div>
+            <button class="buy" data-product="Blazer Suit Set">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/15.png" alt="Formal Trousers" />
+            <h3>Formal Trousers</h3>
+            <p></p>
+            <div class="price">₹450</div>
+            <button class="buy" data-product="Formal Trousers">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/16.png" alt="Kurta Set" />
+            <h3>Kurta Set</h3>
+            <p></p>
+            <div class="price">₹580</div>
+            <button class="buy" data-product="Kurta Set">
+              Buy on Whatsapp
+            </button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/17.png" alt="Sneakers" />
+            <h3>Sneakers</h3>
+            <p></p>
+            <div class="price">₹570</div>
+            <button class="buy" data-product="Sneakers">Buy on Whatsapp</button>
+          </article>
+
+          <article class="card hidden">
+            <img src="assets/fashion/18.png" alt="Tote Bag" />
+            <h3>Tote Bag</h3>
+            <p></p>
+            <div class="price">₹300</div>
+            <button class="buy" data-product="Tote Bag">Buy on Whatsapp</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="skincare">
+        <div class="hero">
+          <div class="left">
+            <h2 style="color: var(--muted)">Skincare — Active Collection</h2>
+            <p style="color: rgba(255, 255, 255, 0.7)">
+              Glowing skin essentials — serums, cleansers and moisturisers.
+            </p>
+          </div>
+        </div>
+
+        <div class="products" id="skincareProducts">
+          <article class="card hidden">
+            <img src="assets/skincare/2-1.png" alt="Hydrating Face Wash" />
+            <h3>Hydrating Face Wash</h3>
+            <p></p>
+            <div class="price">₹399</div>
+            <button class="buy" data-product="Hydrating Face Wash">
+              Buy on WhatsApp
+            </button>
+          </article>
+          <article class="card hidden">
+            <img src="assets/skincare/2-2.png" alt="Nourishing Body Lotion" />
+            <h3>Nourishing Body Lotion</h3>
+            <p>.</p>
+            <div class="price">₹399</div>
+            <button class="buy" data-product="Nourishing Body Lotion">
+              Buy on WhatsApp
+            </button>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="home">
+        <div class="hero">
+          <div class="left">
+            <h2 style="color: var(--muted)">Essentials — Active Collection</h2>
+            <p style="color: rgba(255, 255, 255, 0.7)"></p>
+          </div>
+        </div>
+        <div class="products" id="homeProducts">
+          <article class="card hidden">
+            <img src="assets/homeneeds/3-1.png" alt="Water Bottle" />
+            <h3>Water Bottle</h3>
+            <p></p>
+            <div class="price">₹410</div>
+            <button class="buy" data-product="Water Bottle">
+              Buy on WhatsApp
+            </button>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // Tab navigation
+      document.querySelectorAll("#mainNav a").forEach((a) => {
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          document
+            .querySelectorAll("#mainNav a")
+            .forEach((x) => x.classList.remove("active"));
+          a.classList.add("active");
+          const tab = a.dataset.tab;
+          if (tab) {
+            document
+              .querySelectorAll(".section")
+              .forEach((s) => s.classList.remove("active"));
+            document.getElementById(tab).classList.add("active");
+            revealVisibleCards();
+          }
+        });
+      });
+
+      // Reveal on scroll using IntersectionObserver
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("reveal");
+              entry.target.classList.remove("hidden");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.12 }
+      );
+
+      function revealVisibleCards() {
+        document
+          .querySelectorAll(".section.active .card.hidden")
+          .forEach((card) => observer.observe(card));
+      }
+      revealVisibleCards();
+
+      // Glow scale & fade on scroll
+      const glow = document.getElementById("glow");
+      window.addEventListener(
+        "scroll",
+        () => {
+          const sc = window.scrollY;
+          const ratio = Math.min(sc / 600, 1);
+          glow.style.transform = `translateX(-50%) translateY(${
+            -ratio * 40
+          }px) scale(${1 + ratio * 1.6})`;
+          glow.style.opacity = String(1 - ratio * 1.1);
+        },
+        { passive: true }
+      );
+
+      // WhatsApp quick buy
+      // const PHONE_NUMBER = "7601028442"; // <- replace
+      // document.querySelectorAll(".buy").forEach((btn) => {
+      //   btn.addEventListener("click", () => {
+      //     const product = btn.dataset.product || "product";
+      //     const msg = encodeURIComponent(
+      //       `I want to buy ${product} from Glowence`
+      //     );
+      //     const url = `https://wa.me/${PHONE_NUMBER}?text=${msg}`;
+      //     window.open(url, "_blank");
+      //   });
+      // });
+
+      const PHONE_NUMBER = "917601028442"; // replace with your WhatsApp number
+
+      document.querySelectorAll(".buy").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const product = btn.dataset.product;
+
+          // pre-filled template message
+          const msg = `I want to buy ${product}
+          Size:
+          Quantity:
+          Name:
+          Address: `;
+
+          // encode and open WhatsApp
+          const url = `https://wa.me/${PHONE_NUMBER}?text=${encodeURIComponent(
+            msg
+          )}`;
+          window.open(url, "_blank");
+        });
+      });
+
+      // Search functionality (live filter)
+      const searchInput = document.getElementById("searchInput");
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.toLowerCase();
+        document.querySelectorAll(".section.active .card").forEach((card) => {
+          const text = card.innerText.toLowerCase();
+          card.style.display = text.includes(query) ? "flex" : "none";
+        });
+      });
+    </script>
+  </body>
+</html>
